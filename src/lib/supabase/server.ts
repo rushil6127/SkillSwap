@@ -1,37 +1,21 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { env } from "@/lib/env";
-import type { Database } from "@/types/database";
-
 /**
- * Creates a Supabase client for Server Components, Server Actions, and Route Handlers.
+ * Server-side Supabase Client for API Routes & Server Actions
  */
-export function createClient() {
-  const cookieStore = cookies();
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-  return createServerClient<Database>(
-    env.supabaseUrl,
-    env.supabaseAnonKey,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+export function createSupabaseServerClient(authHeader?: string): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  const options = authHeader
+    ? {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
         },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch {
-            // Can happen in Server Components where cookies cannot be set directly
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch {
-            // Can happen in Server Components where cookies cannot be set directly
-          }
-        },
-      },
-    }
-  );
+      }
+    : undefined;
+
+  return createClient(supabaseUrl, supabaseAnonKey, options);
 }

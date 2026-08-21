@@ -1,13 +1,20 @@
-import { createBrowserClient } from "@supabase/ssr";
-import { env } from "@/lib/env";
-import type { Database } from "@/types/database";
-
 /**
- * Creates a Supabase client for use in browser / client components.
+ * Browser-side Supabase Client
  */
-export function createClient() {
-  return createBrowserClient<Database>(
-    env.supabaseUrl,
-    env.supabaseAnonKey
-  );
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+let browserClient: SupabaseClient | null = null;
+
+export function getSupabaseBrowserClient(): SupabaseClient {
+  if (browserClient) return browserClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables missing. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.');
+  }
+
+  browserClient = createClient(supabaseUrl, supabaseAnonKey);
+  return browserClient;
 }
