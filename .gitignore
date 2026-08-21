@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 /node_modules
 /.pnp
@@ -33,3 +34,12 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+=======
+node_modules/
+.next/
+.env
+.env.local
+.env*.local
+dist/
+build/
+>>>>>>> 13aebe904fec0144379441c480ae00c4d3992815
