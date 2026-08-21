@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../supabase/client';
 import { OfferRow, OfferStatus } from '../../types/database';
 import { CreateOfferInput, OfferDetail, OfferFilters } from '../../types/offers';
+import { SwapDetail } from '../../types/swaps';
 import { sanitizeOfferFilters, validateCreateOfferInput } from '../validations/offers';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -257,7 +258,7 @@ export class OffersService {
     offerId: string,
     creatorUserId: string,
     customClient?: SupabaseClient
-  ): Promise<{ success: boolean; offer: OfferDetail | null; error: string | null }> {
+  ): Promise<{ success: boolean; offer: OfferDetail | null; swap?: SwapDetail | null; error: string | null }> {
     if (!offerId || !UUID_REGEX.test(offerId)) {
       return { success: false, offer: null, error: 'Invalid offer ID.' };
     }
@@ -339,7 +340,32 @@ export class OffersService {
       };
     }
 
-    // 6. Automatically reject all other pending offers for this request
+    // 6. Create the Swap row with ACTIVE status and immutable credit reward copied from the request
+    const { data: createdSwap, error: swapError } = await client
+      .from('swaps')
+      .insert({
+        request_id: offer.request_id,
+        requester_id: creatorUserId,
+        provider_id: offer.provider_id,
+        credits: request.credits_offered,
+        status: 'ACTIVE',
+        started_at: new Date().toISOString(),
+        completed_at: null,
+      })
+      .select(
+        '*, requester:users!requester_id(id, name, email, avatar_url, college, department, year, rating), provider:users!provider_id(id, name, email, avatar_url, college, department, year, rating), request:requests(*, creator:users(id, name, email, avatar_url, college, department, year, rating), skill:skills(id, name, category))'
+      )
+      .single();
+
+    if (swapError) {
+      return {
+        success: false,
+        offer: null,
+        error: swapError.message || 'Failed to create active swap.',
+      };
+    }
+
+    // 7. Automatically reject all other pending offers for this request
     await client
       .from('offers')
       .update({ status: 'REJECTED' })
@@ -350,6 +376,7 @@ export class OffersService {
     return {
       success: true,
       offer: updatedOffer as unknown as OfferDetail,
+      swap: createdSwap as unknown as SwapDetail,
       error: null,
     };
   }

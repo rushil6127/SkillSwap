@@ -173,15 +173,29 @@ describe('OffersService Business Logic & Security Tests', () => {
           },
           insert: (payload: any) => ({
             select: () => ({
-              single: async () => ({
-                data: {
-                  id: mockOfferId,
-                  ...payload,
-                  created_at: new Date().toISOString(),
-                  provider: { id: mockProviderId, name: 'Provider' },
-                },
-                error: null,
-              }),
+              single: async () => {
+                if (table === 'swaps') {
+                  return {
+                    data: {
+                      id: '77777777-7777-4777-a777-777777777777',
+                      ...payload,
+                      created_at: new Date().toISOString(),
+                      requester: { id: mockCreatorId, name: 'Creator' },
+                      provider: { id: mockProviderId, name: 'Provider' },
+                    },
+                    error: null,
+                  };
+                }
+                return {
+                  data: {
+                    id: mockOfferId,
+                    ...payload,
+                    created_at: new Date().toISOString(),
+                    provider: { id: mockProviderId, name: 'Provider' },
+                  },
+                  error: null,
+                };
+              },
             }),
           }),
           update: (payload: any) => ({

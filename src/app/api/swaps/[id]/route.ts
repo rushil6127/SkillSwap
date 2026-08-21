@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { OffersService } from '@/lib/services/offers-service';
+import { SwapsService } from '@/lib/services/swaps-service';
 
 interface RouteParams {
   params: {
@@ -9,8 +9,8 @@ interface RouteParams {
 }
 
 /**
- * GET /api/offers/[id]
- * Fetch single offer details
+ * GET /api/swaps/[id]
+ * Fetch single swap details (Participants only)
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
@@ -26,14 +26,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
     }
 
-    const { offer, error } = await OffersService.getOfferById(params.id, user.id, supabase);
+    const { swap, error } = await SwapsService.getSwapById(params.id, user.id, supabase);
 
-    if (error || !offer) {
+    if (error || !swap) {
       const status = error?.includes('Unauthorized') ? 403 : 404;
-      return NextResponse.json({ error: error || 'Offer not found.' }, { status });
+      return NextResponse.json({ error: error || 'Swap not found.' }, { status });
     }
 
-    return NextResponse.json({ offer }, { status: 200 });
+    return NextResponse.json({ swap }, { status: 200 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -41,9 +41,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 }
 
 /**
- * PATCH /api/offers/[id]
- * Accept or Reject an offer (Request Creator only)
- * Body: { action: 'accept' | 'reject' } OR { status: 'ACCEPTED' | 'REJECTED' }
+ * PATCH /api/swaps/[id]
+ * Complete or Cancel a swap
+ * Body: { action: 'complete' | 'cancel' }
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
@@ -66,26 +66,26 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
     const action = (body.action || body.status || '').toLowerCase();
 
-    if (action === 'accept' || action === 'accepted') {
-      const result = await OffersService.acceptOffer(params.id, user.id, supabase);
+    if (action === 'complete' || action === 'completed') {
+      const result = await SwapsService.completeSwap(params.id, user.id, supabase);
       if (!result.success || result.error) {
         const status = result.error?.includes('Unauthorized') ? 403 : 400;
         return NextResponse.json({ error: result.error }, { status });
       }
-      return NextResponse.json({ success: true, offer: result.offer, swap: result.swap }, { status: 200 });
+      return NextResponse.json({ success: true, swap: result.swap }, { status: 200 });
     }
 
-    if (action === 'reject' || action === 'rejected') {
-      const result = await OffersService.rejectOffer(params.id, user.id, supabase);
+    if (action === 'cancel' || action === 'cancelled') {
+      const result = await SwapsService.cancelSwap(params.id, user.id, supabase);
       if (!result.success || result.error) {
         const status = result.error?.includes('Unauthorized') ? 403 : 400;
         return NextResponse.json({ error: result.error }, { status });
       }
-      return NextResponse.json({ success: true, offer: result.offer }, { status: 200 });
+      return NextResponse.json({ success: true, swap: result.swap }, { status: 200 });
     }
 
     return NextResponse.json(
-      { error: "Invalid action. Supported actions are 'accept' or 'reject'." },
+      { error: "Invalid action. Supported actions are 'complete' or 'cancel'." },
       { status: 400 }
     );
   } catch (err: unknown) {
