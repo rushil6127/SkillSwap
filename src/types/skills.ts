@@ -1,5 +1,6 @@
-export type { SkillRow, SkillLevel, SkillType, UserSkillRow } from './database';
 import type { SkillRow, SkillLevel, SkillType, UserSkillRow } from './database';
+
+export type { SkillRow, SkillLevel, SkillType, UserSkillRow };
 
 export type SkillCategory = 'Technology' | 'Academic' | 'Creative' | 'Communication' | 'Other';
 
