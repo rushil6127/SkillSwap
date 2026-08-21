@@ -19,7 +19,7 @@ export class AuthService {
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password: password || 'temp-hackathon-password',
+      password,
       options: {
         data: {
           name,
@@ -68,7 +68,7 @@ export class AuthService {
 
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
-      password: password || '',
+      password,
     });
 
     if (authError) {

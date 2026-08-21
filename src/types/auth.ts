@@ -14,7 +14,7 @@ export interface AuthUser {
 
 export interface SignUpInput {
   email: string;
-  password?: string;
+  password: string;
   name: string;
   college: string;
   department: string;
@@ -24,7 +24,7 @@ export interface SignUpInput {
 
 export interface SignInInput {
   email: string;
-  password?: string;
+  password: string;
 }
 
 export interface AuthSessionResult {

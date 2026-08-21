@@ -27,8 +27,8 @@ export function validateSignUpInput(input: unknown): ValidationResult<SignUpInpu
     errors.email = 'Please provide a valid campus email address.';
   }
 
-  if (password && password.length < 6) {
-    errors.password = 'Password must be at least 6 characters.';
+  if (!password || password.length < 6) {
+    errors.password = 'Password is required and must be at least 6 characters.';
   }
 
   if (!name || name.length < 2) {
