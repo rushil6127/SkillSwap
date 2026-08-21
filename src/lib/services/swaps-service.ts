@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../supabase/client';
 import { CreateSwapInput, SwapDetail, SwapFilters } from '../../types/swaps';
 import { sanitizeSwapFilters, validateCreateSwapInput } from '../validations/swaps';
+import { TransactionService } from './transaction-service';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -152,13 +153,14 @@ export class SwapsService {
   }
 
   /**
-   * Complete an active swap (Requester only)
+   * Complete an active swap and execute atomic SkillCredit transfer (Requester only)
    */
   static async completeSwap(
     swapId: string,
     userId: string,
+    reasonOrClient?: string | SupabaseClient,
     customClient?: SupabaseClient
-  ): Promise<{ success: boolean; swap: SwapDetail | null; error: string | null }> {
+  ): Promise<{ success: boolean; swap: SwapDetail | null; transactionId?: string; error: string | null }> {
     if (!swapId || !UUID_REGEX.test(swapId)) {
       return { success: false, swap: null, error: 'Invalid swap ID.' };
     }
@@ -166,73 +168,41 @@ export class SwapsService {
       return { success: false, swap: null, error: 'Invalid user ID.' };
     }
 
-    const client = this.getClient(customClient);
+    const reason = typeof reasonOrClient === 'string' ? reasonOrClient : undefined;
+    const client =
+      typeof reasonOrClient === 'object' && reasonOrClient !== null
+        ? (reasonOrClient as SupabaseClient)
+        : this.getClient(customClient);
 
-    // 1. Fetch swap
-    const { data: swap, error: fetchError } = await client
-      .from('swaps')
-      .select('*')
-      .eq('id', swapId)
-      .single();
+    // Execute atomic completion & financial credit transfer
+    const transferResult = await TransactionService.completeSwapAndTransfer(
+      swapId,
+      userId,
+      reason,
+      client
+    );
 
-    if (fetchError || !swap) {
-      return { success: false, swap: null, error: 'Swap not found.' };
-    }
-
-    // 2. Authorization: Request owner completes swap
-    if (swap.requester_id !== userId) {
+    if (!transferResult.success) {
       return {
         success: false,
         swap: null,
-        error: 'Unauthorized: Only the requester can confirm swap completion.',
+        error: transferResult.error || 'Failed to complete swap.',
       };
     }
 
-    // 3. State validations
-    if (swap.status === 'COMPLETED') {
-      return { success: false, swap: null, error: 'Swap is already completed.' };
-    }
-    if (swap.status === 'CANCELLED') {
-      return { success: false, swap: null, error: 'Cannot complete a cancelled swap.' };
-    }
-    if (swap.status !== 'ACTIVE') {
-      return { success: false, swap: null, error: 'Swap is not in an active state.' };
-    }
-
-    // 4. Update swap to COMPLETED
-    const { data: updatedSwap, error: updateError } = await client
+    // Fetch updated swap details
+    const { data: updatedSwap } = await client
       .from('swaps')
-      .update({
-        status: 'COMPLETED',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', swapId)
-      .eq('status', 'ACTIVE')
       .select(
         '*, requester:users!requester_id(id, name, email, avatar_url, college, department, year, rating), provider:users!provider_id(id, name, email, avatar_url, college, department, year, rating), request:requests(*, creator:users(id, name, email, avatar_url, college, department, year, rating), skill:skills(id, name, category))'
       )
+      .eq('id', swapId)
       .single();
-
-    if (updateError || !updatedSwap) {
-      return {
-        success: false,
-        swap: null,
-        error: updateError ? updateError.message : 'Failed to complete swap.',
-      };
-    }
-
-    // 5. Update linked request to COMPLETED
-    await client
-      .from('requests')
-      .update({
-        status: 'COMPLETED',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', swap.request_id);
 
     return {
       success: true,
-      swap: updatedSwap as unknown as SwapDetail,
+      swap: (updatedSwap as unknown as SwapDetail) || null,
+      transactionId: transferResult.transaction_id,
       error: null,
     };
   }

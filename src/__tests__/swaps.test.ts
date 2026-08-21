@@ -78,12 +78,27 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
       providerId = mockProviderId,
     } = options;
 
+    let currentSwapStatus = swapStatus;
+
     return {
       from: (table: string) => {
         return {
           select: (fields?: string, selectOpts?: any) => {
             const query: any = {
               eq: (col: string, val: any) => {
+                if (table === 'users') {
+                  return {
+                    single: async () => ({
+                      data: {
+                        id: val,
+                        credits_balance: 20,
+                        name: 'Student',
+                        email: 'student@campus.edu',
+                      },
+                      error: null,
+                    }),
+                  };
+                }
                 if (table === 'swaps' && col === 'id' && val === mockSwapId) {
                   return {
                     single: async () => ({
@@ -93,9 +108,9 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
                         requester_id: requesterId,
                         provider_id: providerId,
                         credits: 15,
-                        status: swapStatus,
+                        status: currentSwapStatus,
                         started_at: new Date().toISOString(),
-                        completed_at: swapStatus === 'COMPLETED' ? new Date().toISOString() : null,
+                        completed_at: currentSwapStatus === 'COMPLETED' ? new Date().toISOString() : null,
                         requester: { id: requesterId, name: 'Requester' },
                         provider: { id: providerId, name: 'Provider' },
                         request: { id: mockRequestId, title: 'React Help' },
@@ -119,7 +134,7 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
                       requester_id: requesterId,
                       provider_id: providerId,
                       credits: 15,
-                      status: swapStatus,
+                      status: currentSwapStatus,
                     },
                   ],
                   error: null,
@@ -142,9 +157,28 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
               }),
             }),
           }),
-          update: (payload: any) => ({
-            eq: (col1: string, val1: any) => ({
-              eq: (col2: string, val2: any) => ({
+          update: (payload: any) => {
+            if (payload.status) {
+              currentSwapStatus = payload.status;
+            }
+            return {
+              eq: (col1: string, val1: any) => ({
+                eq: (col2: string, val2: any) => ({
+                  select: () => ({
+                    single: async () => ({
+                      data: {
+                        id: mockSwapId,
+                        request_id: mockRequestId,
+                        requester_id: requesterId,
+                        provider_id: providerId,
+                        credits: 15,
+                        status: currentSwapStatus,
+                        ...payload,
+                      },
+                      error: null,
+                    }),
+                  }),
+                }),
                 select: () => ({
                   single: async () => ({
                     data: {
@@ -153,27 +187,16 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
                       requester_id: requesterId,
                       provider_id: providerId,
                       credits: 15,
+                      status: currentSwapStatus,
                       ...payload,
                     },
                     error: null,
                   }),
                 }),
+                then: (resolve: any) => resolve({ error: null }),
               }),
-              select: () => ({
-                single: async () => ({
-                  data: {
-                    id: mockSwapId,
-                    request_id: mockRequestId,
-                    requester_id: requesterId,
-                    provider_id: providerId,
-                    credits: 15,
-                    ...payload,
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          }),
+            };
+          },
         };
       },
     } as any;
@@ -233,13 +256,13 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
   });
 
   it('allows either participant to cancel an active swap', async () => {
-    const client = createMockSwapSupabase({ swapStatus: 'ACTIVE' });
-
-    const requesterCancel = await SwapsService.cancelSwap(mockSwapId, mockRequesterId, client);
+    const client1 = createMockSwapSupabase({ swapStatus: 'ACTIVE' });
+    const requesterCancel = await SwapsService.cancelSwap(mockSwapId, mockRequesterId, client1);
     expect(requesterCancel.success).toBe(true);
     expect(requesterCancel.swap?.status).toBe('CANCELLED');
 
-    const providerCancel = await SwapsService.cancelSwap(mockSwapId, mockProviderId, client);
+    const client2 = createMockSwapSupabase({ swapStatus: 'ACTIVE' });
+    const providerCancel = await SwapsService.cancelSwap(mockSwapId, mockProviderId, client2);
     expect(providerCancel.success).toBe(true);
     expect(providerCancel.swap?.status).toBe('CANCELLED');
   });
