@@ -1,6 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '../supabase/client';
-import { getSupabaseAdminClient } from '../supabase/admin';
 import { CompleteSwapTransferResult, TransactionDetail, TransactionFilters } from '../../types/transactions';
 import { sanitizeTransactionFilters } from '../validations/transactions';
 
@@ -138,20 +137,10 @@ export class TransactionService {
   /**
    * Execute an atomic server-side swap completion and SkillCredit transfer.
    *
-   * Flow & Security:
-   * 1. Validates authenticated confirming user and swap UUID.
-   * 2. Reads swap details and locks row.
-   * 3. Authorizes confirming user (must be swap requester).
-   * 4. Enforces self-transfer check (requester != provider).
-   * 5. Enforces state check (swap must be ACTIVE; rejects COMPLETED or CANCELLED).
-   * 6. Checks requester's live balance >= swap credit reward.
-   * 7. Uses GUARDED UPDATE on swaps:
-   *    UPDATE swaps SET status = 'COMPLETED', completed_at = now()
-   *    WHERE id = $1 AND status = 'ACTIVE'
-   *    If 0 rows affected, aborts immediately — preventing duplicate payment & race conditions.
-   * 8. Deducts credits from requester and increments provider credits.
-   * 9. Inserts transaction record with immutable swap credits amount.
-   * 10. Marks linked request COMPLETED.
+   * The authoritative PostgreSQL RPC `complete_swap_and_transfer_credits` is the ONLY
+   * settlement mechanism. It enforces row locking, authorization, state transitions,
+   * balance checks, guarded updates, credit transfers, audit logging, and notifications
+   * inside a single database transaction.
    */
   static async completeSwapAndTransfer(
     swapId: string,
@@ -168,179 +157,48 @@ export class TransactionService {
 
     const client = this.getClient(customClient);
 
-    // 1. Fetch swap details
-    const { data: swap, error: swapFetchError } = await client
-      .from('swaps')
-      .select('id, request_id, requester_id, provider_id, credits, status')
-      .eq('id', swapId)
-      .single();
-
-    if (swapFetchError || !swap) {
-      return { success: false, error: swapFetchError ? swapFetchError.message : 'Swap not found.' };
-    }
-
-    // 2. Authorization: Only the requester can confirm completion
-    if (swap.requester_id !== confirmingUserId) {
+    if (typeof client.rpc !== 'function') {
       return {
         success: false,
-        error: 'Unauthorized: Only the requester can confirm swap completion.',
+        error: 'Database settlement RPC is not available on the database client.',
       };
     }
 
-    // 3. Defensive self-transfer check
-    if (swap.requester_id === swap.provider_id) {
-      return {
-        success: false,
-        error: 'Cannot transfer credits to self.',
-      };
-    }
+    try {
+      const { data, error } = await client.rpc('complete_swap_and_transfer_credits', {
+        p_swap_id: swapId,
+        p_confirming_user_id: confirmingUserId,
+        p_reason: reason || undefined,
+      });
 
-    // 4. Status checks
-    if (swap.status === 'COMPLETED') {
-      return { success: false, error: 'Swap is already completed.' };
-    }
-    if (swap.status === 'CANCELLED') {
-      return { success: false, error: 'Cannot complete a cancelled swap.' };
-    }
-    if (swap.status !== 'ACTIVE') {
-      return { success: false, error: 'Swap is not in an active state.' };
-    }
-
-    // 5. Verify requester balance
-    const { data: requester, error: userError } = await client
-      .from('users')
-      .select('id, credits_balance')
-      .eq('id', swap.requester_id)
-      .single();
-
-    if (userError || !requester) {
-      return { success: false, error: 'Requester user account not found.' };
-    }
-
-    if (requester.credits_balance < swap.credits) {
-      return {
-        success: false,
-        error: `Insufficient SkillCredits balance. Required: ${swap.credits}, Available: ${requester.credits_balance}.`,
-      };
-    }
-
-    // 6. Try PostgreSQL RPC if available
-    if (typeof client.rpc === 'function') {
-      try {
-        const { data: rpcResult, error: rpcError } = await client.rpc(
-          'complete_swap_and_transfer_credits',
-          {
-            p_swap_id: swapId,
-            p_confirming_user_id: confirmingUserId,
-            p_reason: reason || `Completed swap exchange for ${swap.credits} credits`,
-          }
-        );
-
-        if (!rpcError && rpcResult && rpcResult.success) {
-          return {
-            success: true,
-            swap_id: swapId,
-            transaction_id: rpcResult.transaction_id,
-            amount: rpcResult.amount || swap.credits,
-            new_requester_balance: rpcResult.new_requester_balance,
-            error: null,
-          };
-        } else if (rpcError && !rpcError.message?.includes('function') && !rpcError.message?.includes('does not exist')) {
-          return {
-            success: false,
-            error: rpcError.message,
-          };
-        }
-      } catch {
-        // Fall back to direct guarded transaction sequence if RPC not registered in current environment
+      if (error) {
+        return {
+          success: false,
+          error: error.message || 'Swap completion and settlement failed.',
+        };
       }
-    }
 
-    // 7. Guarded update: Atomically update swap status from ACTIVE -> COMPLETED
-    const { data: updatedSwap, error: updateError } = await client
-      .from('swaps')
-      .update({
-        status: 'COMPLETED',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', swapId)
-      .eq('status', 'ACTIVE')
-      .select('id, status, credits, requester_id, provider_id, request_id')
-      .single();
+      if (!data || data.success !== true) {
+        return {
+          success: false,
+          error: (data && data.error) || 'Swap completion and settlement failed.',
+        };
+      }
 
-    if (updateError || !updatedSwap) {
+      return {
+        success: true,
+        swap_id: data.swap_id || swapId,
+        transaction_id: data.transaction_id,
+        amount: data.amount,
+        new_requester_balance: data.new_requester_balance,
+        error: null,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Internal settlement error';
       return {
         success: false,
-        error: 'Concurrent completion conflict: swap was already completed or cancelled by another request.',
+        error: message,
       };
     }
-
-    // 8. Deduct credits from requester
-    const newRequesterBalance = requester.credits_balance - swap.credits;
-    const { error: deductError } = await client
-      .from('users')
-      .update({ credits_balance: newRequesterBalance })
-      .eq('id', swap.requester_id);
-
-    if (deductError) {
-      // Rollback swap status if deduction fails
-      await client.from('swaps').update({ status: 'ACTIVE', completed_at: null }).eq('id', swapId);
-      return { success: false, error: `Failed to deduct credits: ${deductError.message}` };
-    }
-
-    // 9. Add credits to provider
-    const { data: provider } = await client
-      .from('users')
-      .select('credits_balance')
-      .eq('id', swap.provider_id)
-      .single();
-
-    if (provider) {
-      await client
-        .from('users')
-        .update({ credits_balance: (provider.credits_balance || 0) + swap.credits })
-        .eq('id', swap.provider_id);
-    }
-
-    // 10. Record transaction
-    const txReason = reason || `Completed swap exchange for ${swap.credits} credits`;
-    const { data: transaction, error: txError } = await client
-      .from('transactions')
-      .insert({
-        swap_id: swapId,
-        from_user_id: swap.requester_id,
-        to_user_id: swap.provider_id,
-        amount: swap.credits,
-        reason: txReason,
-      })
-      .select('id')
-      .single();
-
-    if (txError) {
-      return {
-        success: false,
-        error: `Transaction record creation failed: ${txError.message}`,
-      };
-    }
-
-    // 11. Update linked request to COMPLETED
-    if (swap.request_id) {
-      await client
-        .from('requests')
-        .update({
-          status: 'COMPLETED',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', swap.request_id);
-    }
-
-    return {
-      success: true,
-      swap_id: swapId,
-      transaction_id: transaction?.id,
-      amount: swap.credits,
-      new_requester_balance: newRequesterBalance,
-      error: null,
-    };
   }
 }

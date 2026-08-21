@@ -140,3 +140,7 @@ BEGIN
   );
 END;
 $$;
+
+-- Hardened execution permissions: Only authenticated users and service role may invoke settlement
+REVOKE EXECUTE ON FUNCTION public.complete_swap_and_transfer_credits(UUID, UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.complete_swap_and_transfer_credits(UUID, UUID, TEXT) TO authenticated, service_role;

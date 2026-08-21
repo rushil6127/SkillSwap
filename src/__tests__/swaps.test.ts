@@ -199,6 +199,41 @@ describe('SwapsService Business Logic & Lifecycle Tests', () => {
           },
         };
       },
+      rpc: async (fnName: string, params: any) => {
+        if (fnName === 'complete_swap_and_transfer_credits') {
+          const { p_swap_id, p_confirming_user_id } = params;
+          if (p_swap_id !== mockSwapId) {
+            return { data: null, error: { message: 'Swap not found' } };
+          }
+          if (requesterId !== p_confirming_user_id) {
+            return {
+              data: null,
+              error: { message: 'Unauthorized: Only the requester can confirm swap completion' },
+            };
+          }
+          if (currentSwapStatus === 'COMPLETED') {
+            return { data: null, error: { message: 'Swap is already completed' } };
+          }
+          if (currentSwapStatus === 'CANCELLED') {
+            return { data: null, error: { message: 'Cannot complete a cancelled swap' } };
+          }
+          if (currentSwapStatus !== 'ACTIVE') {
+            return { data: null, error: { message: 'Swap is not in an active state' } };
+          }
+          currentSwapStatus = 'COMPLETED';
+          return {
+            data: {
+              success: true,
+              swap_id: p_swap_id,
+              transaction_id: '88888888-8888-4888-a888-888888888888',
+              amount: 15,
+              new_requester_balance: 5,
+            },
+            error: null,
+          };
+        }
+        return { data: null, error: null };
+      },
     } as any;
   };
 
