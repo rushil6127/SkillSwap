@@ -1,5 +1,7 @@
 import { SkillRow, SkillLevel, SkillType, UserSkillRow } from './database';
 
+export type { SkillLevel, SkillType };
+
 export type SkillCategory = 'Technology' | 'Academic' | 'Creative' | 'Communication' | 'Other';
 
 export interface CreateSkillInput {
