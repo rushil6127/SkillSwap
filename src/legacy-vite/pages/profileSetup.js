@@ -2,9 +2,9 @@
    SkillSwap — Profile Setup Page (First-Time)
    ============================================ */
 
-import { completeProfileSetup, getCurrentUser, isLoggedIn, isProfileComplete } from '../store.js';
-import { navigate, showCelebration } from '../app.js';
-import { SKILL_CATEGORIES } from '../data/skills.js';
+import { completeProfileSetup, getCurrentUser, isLoggedIn, isProfileComplete } from '../../store.js';
+import { navigate, showCelebration } from '../../app.js';
+import { SKILL_CATEGORIES } from '../../data/skills.js';
 
 export function renderProfileSetup() {
   if (!isLoggedIn()) { navigate('login'); return ''; }

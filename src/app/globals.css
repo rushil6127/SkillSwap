@@ -1,6 +1,11 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme inline {
+:root {
+  --background: #f2f9f1;
+  --foreground: #0F2A1D;
+
   --color-green-900: #0F2A1D;
   --color-green-800: #375534;
   --color-green-700: #6B9071;
@@ -12,15 +17,10 @@
   --color-green-100: #CFE1B9;
   --color-green-50: #E3EED4;
   --color-green-25: #E7F5DC;
-  
+
   --color-primary: var(--color-green-900);
   --color-secondary: var(--color-green-700);
   --color-accent: var(--color-green-200);
-}
-
-:root {
-  --background: #f2f9f1; /* Very light minty green/white */
-  --foreground: #0F2A1D;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,8 +31,9 @@
 }
 
 body {
-  background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
 }

@@ -2,9 +2,9 @@
    SkillSwap — Profile Edit Page
    ============================================ */
 
-import { getCurrentUser, updateProfile, isLoggedIn, isProfileComplete } from '../store.js';
-import { navigate, showToast } from '../app.js';
-import { SKILL_CATEGORIES } from '../data/skills.js';
+import { getCurrentUser, updateProfile, isLoggedIn, isProfileComplete } from '../../store.js';
+import { navigate, showToast } from '../../app.js';
+import { SKILL_CATEGORIES } from '../../data/skills.js';
 
 export function renderProfileEdit() {
   if (!isLoggedIn()) { navigate('login'); return ''; }

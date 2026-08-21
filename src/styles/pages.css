@@ -12,7 +12,7 @@
   min-height: 100vh;
   padding: var(--sp-4);
   background-color: var(--clr-mint);
-  background-image: 
+  background-image:
     linear-gradient(rgba(107, 144, 113, 0.3) 1px, transparent 1px),
     linear-gradient(90deg, rgba(107, 144, 113, 0.3) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -525,4 +525,3 @@
   color: #1a2f23;
   font-weight: 700;
 }
-

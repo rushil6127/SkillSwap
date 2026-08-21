@@ -2,8 +2,8 @@
    SkillSwap — Login Page
    ============================================ */
 
-import { loginUser, isLoggedIn, isProfileComplete } from '../store.js';
-import { navigate } from '../app.js';
+import { loginUser, isLoggedIn, isProfileComplete } from '../../store.js';
+import { navigate } from '../../app.js';
 
 export function renderLogin() {
   // If already logged in, redirect

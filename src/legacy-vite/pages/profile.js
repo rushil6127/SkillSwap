@@ -2,8 +2,8 @@
    SkillSwap — Profile View Page
    ============================================ */
 
-import { getCurrentUser, isLoggedIn, isProfileComplete, logoutUser } from '../store.js';
-import { navigate } from '../app.js';
+import { getCurrentUser, isLoggedIn, isProfileComplete, logoutUser } from '../../store.js';
+import { navigate } from '../../app.js';
 
 function renderStars(rating, maxStars = 5) {
   let stars = '';

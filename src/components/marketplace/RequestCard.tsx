@@ -21,7 +21,7 @@ export function RequestCard({ request }: { request: RequestData }) {
     <div className="group flex flex-col bg-white rounded-3xl p-6 shadow-sm border border-green-100 hover:shadow-xl transition-all duration-300 relative overflow-hidden h-full">
       {/* Decorative background element */}
       <div className="absolute -right-8 -top-8 w-32 h-32 bg-green-50 rounded-full blur-2xl opacity-50 group-hover:bg-green-100 transition-colors"></div>
-      
+
       <div className="flex justify-between items-start mb-4 relative z-10">
         <div>
           <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
@@ -31,7 +31,7 @@ export function RequestCard({ request }: { request: RequestData }) {
             {request.title}
           </h3>
         </div>
-        
+
         <div className="flex flex-col items-end">
           <div className="flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-2xl border border-green-200">
             <span className="font-bold text-green-800">{request.reward}</span>
@@ -70,7 +70,7 @@ export function RequestCard({ request }: { request: RequestData }) {
               <p className="text-xs text-green-500 font-medium">Needs help</p>
             </div>
           </div>
-          
+
           <button className="flex items-center justify-center w-10 h-10 rounded-full bg-green-800 text-white hover:bg-green-700 hover:scale-105 transition-all shadow-md group-hover:w-auto group-hover:px-4 group-hover:gap-2">
             <HandHeart size={18} />
             <span className="hidden group-hover:inline text-sm font-bold whitespace-nowrap">Offer Help</span>

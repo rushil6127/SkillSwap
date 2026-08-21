@@ -2,8 +2,8 @@
    SkillSwap — Register Page
    ============================================ */
 
-import { registerUser, isLoggedIn } from '../store.js';
-import { navigate } from '../app.js';
+import { registerUser, isLoggedIn } from '../../store.js';
+import { navigate } from '../../app.js';
 
 export function renderRegister() {
   if (isLoggedIn()) {

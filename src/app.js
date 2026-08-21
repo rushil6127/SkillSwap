@@ -2,11 +2,11 @@
    SkillSwap — SPA Router & App Entry
    ============================================ */
 
-import { renderLogin, initLogin } from './pages/login.js';
-import { renderRegister, initRegister } from './pages/register.js';
-import { renderProfileSetup, initProfileSetup } from './pages/profileSetup.js';
-import { renderProfile, initProfile } from './pages/profile.js';
-import { renderProfileEdit, initProfileEdit } from './pages/profileEdit.js';
+import { renderLogin, initLogin } from './legacy-vite/pages/login.js';
+import { renderRegister, initRegister } from './legacy-vite/pages/register.js';
+import { renderProfileSetup, initProfileSetup } from './legacy-vite/pages/profileSetup.js';
+import { renderProfile, initProfile } from './legacy-vite/pages/profile.js';
+import { renderProfileEdit, initProfileEdit } from './legacy-vite/pages/profileEdit.js';
 import { isLoggedIn, isProfileComplete } from './store.js';
 
 const app = document.getElementById('app');
