@@ -1,0 +1,89 @@
+/* ============================================
+   SkillSwap — Design Tokens & CSS Variables
+   ============================================ */
+
+:root {
+  /* ── Color Palette ────────────────────────── */
+  --clr-forest:  #0F2A1D;
+  --clr-pine:    #375534;
+  --clr-sage:    #6B9071;
+  --clr-moss:    #88976C;
+  --clr-olive:   #98A77C;
+  --clr-tea:     #AEC3B0;
+  --clr-mist:    #B6C99B;
+  --clr-mint:    #CFE1B9;
+  --clr-cream:   #E3EED4;
+  --clr-ivory:   #E7F5DC;
+
+  /* Semantic */
+  --clr-bg:       var(--clr-forest);
+  --clr-surface:  rgba(174, 195, 176, 0.12);   /* tea @ 12% */
+  --clr-surface-hover: rgba(174, 195, 176, 0.20);
+  --clr-border:   rgba(55, 85, 52, 0.45);       /* pine @ 45% */
+  --clr-primary:  var(--clr-sage);
+  --clr-primary-hover: #5a7d62;
+  --clr-text:     var(--clr-ivory);
+  --clr-text-secondary: var(--clr-tea);
+  --clr-text-muted: var(--clr-moss);
+  --clr-success:  #7ec883;
+  --clr-warning:  #d4a843;
+  --clr-error:    #d45c5c;
+
+  /* ── Typography ───────────────────────────── */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+  --fw-extrabold: 800;
+
+  --fs-xs:   0.75rem;   /* 12px */
+  --fs-sm:   0.875rem;  /* 14px */
+  --fs-base: 1rem;      /* 16px */
+  --fs-lg:   1.125rem;  /* 18px */
+  --fs-xl:   1.25rem;   /* 20px */
+  --fs-2xl:  1.5rem;    /* 24px */
+  --fs-3xl:  1.875rem;  /* 30px */
+  --fs-4xl:  2.25rem;   /* 36px */
+
+  --lh-tight:  1.2;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* ── Spacing ──────────────────────────────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ── Border Radius ────────────────────────── */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* ── Glassmorphism ────────────────────────── */
+  --glass-bg:     rgba(174, 195, 176, 0.10);
+  --glass-border: rgba(231, 245, 220, 0.12);
+  --glass-blur:   16px;
+  --glass-shadow: 0 8px 32px rgba(15, 42, 29, 0.35);
+
+  /* ── Transitions ──────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+
+  /* ── Layout ───────────────────────────────── */
+  --max-w-auth:    480px;
+  --max-w-profile: 720px;
+  --max-w-wide:    1080px;
+}
