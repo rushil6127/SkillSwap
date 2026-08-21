@@ -342,4 +342,32 @@ describe('OffersService Business Logic & Security Tests', () => {
     expect(result.success).toBe(true);
     expect(result.offer?.status).toBe('REJECTED');
   });
+
+  it('allows request creator and offer provider to view offer by ID', async () => {
+    const client = createMockSupabase({
+      requestCreatorId: mockCreatorId,
+    });
+
+    // Creator can view
+    const creatorView = await OffersService.getOfferById(mockOfferId, mockCreatorId, client);
+    expect(creatorView.error).toBeNull();
+    expect(creatorView.offer?.id).toBe(mockOfferId);
+
+    // Provider can view
+    const providerView = await OffersService.getOfferById(mockOfferId, mockProviderId, client);
+    expect(providerView.error).toBeNull();
+    expect(providerView.offer?.id).toBe(mockOfferId);
+  });
+
+  it('rejects unauthorized third-party from viewing an offer by ID', async () => {
+    const client = createMockSupabase({
+      requestCreatorId: mockCreatorId,
+    });
+
+    const thirdPartyUserId = '99999999-9999-4999-a999-999999999999';
+    const result = await OffersService.getOfferById(mockOfferId, thirdPartyUserId, client);
+
+    expect(result.offer).toBeNull();
+    expect(result.error).toContain('Unauthorized: You do not have access to this offer.');
+  });
 });
